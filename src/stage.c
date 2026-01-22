@@ -216,19 +216,23 @@ stage_apply_chunk(struct view *view, struct line *chunk, struct line *single,
 	if (!io_run(&io, IO_WR, repo.exec_dir, NULL, apply_argv))
 		return false;
 
+	struct line *end = view->line + view->lines;
 	switch (update_type)
 	{
 	case UPDATE_SINGLE_LINE:
-		if (!stage_apply_line(&io, diff_hdr, chunk, single, view->line + view->lines))
-			chunk = NULL;
-		break;
+		if (!(single != end && (single+1)->type == LINE_DIFF_NO_NEWLINE)) {
+			if (!stage_apply_line(&io, diff_hdr, chunk, single, end))
+				chunk = NULL;
+			break;
+		}
+		// fall through
 	case UPDATE_PART:
-		if (!stage_apply_part(&io, diff_hdr, chunk, single, view->line + view->lines))
+		if (!stage_apply_part(&io, diff_hdr, chunk, single, end))
 			chunk = NULL;
 		break;
 	case UPDATE_NORMAL:
 		if (!stage_diff_write(&io, diff_hdr, chunk) ||
-		    !stage_diff_write(&io, chunk, view->line + view->lines))
+		    !stage_diff_write(&io, chunk, end))
 			chunk = NULL;
 		break;
 	}
